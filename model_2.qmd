@@ -1,0 +1,221 @@
+---
+title: "Model_2"
+format: html
+editor: visual
+---
+
+##Setup
+```{r}
+library(tidyverse)
+#install.packages("caret")
+library(caret)
+```
+
+```{r}
+bank <- readRDS(gzcon(url("https://cd-public.github.io/D505/dat/BankChurners.rds")))
+```
+## Feature Enginnering
+
+
+
+```{r}
+bank_features<-bank%>%
+  mutate(male = ifelse(Gender == "M", 1, 0),
+        female = ifelse(Gender == "F", 1, 0),
+        single = ifelse(Marital_Status == "Single", 1, 0),
+        married = ifelse(Marital_Status == "Married", 1, 0),
+        high_school_edu = ifelse(Education_Level == "High School", 1, 0),
+        graduate_edu = ifelse(Education_Level == "Graduate", 1, 0),
+        post_graduate_edu = ifelse(Education_Level == "Post-Graduate", 1, 0),
+        no_edu = ifelse(Education_Level == "Uneducated", 1, 0),
+        unknown_edu = ifelse(Education_Level == "Unknown", 1, 0),
+        college_edu = ifelse(Education_Level == "College", 1, 0),
+        doctor_edu = ifelse(Education_Level == "Doctorate", 1, 0),
+        less_40k = ifelse(Income_Category == "Less than $40K", 1, 0),
+        between_60_80k = ifelse(Income_Category == "$60K - $80K", 1, 0),
+        between_80_120k = ifelse(Income_Category == "$80K - $120K", 1, 0),
+        more_than_120k = ifelse(Income_Category == "$120K +",1,0 ),
+        unknownk = ifelse(Income_Category == "Unknown", 1, 0),
+        blue_card = ifelse(Card_Category == "Blue", 1, 0),
+        silver_card = ifelse(Card_Category == "Silver", 1, 0),
+        gold_card = ifelse(Card_Category == "Gold", 1, 0),
+        plat_card = ifelse(Card_Category == "Platinum", 1, 0),
+        abv_mob = ifelse(Months_on_book >= mean(Months_on_book), 1, 0),
+        below_avg_mob = ifelse(Months_on_book < mean(Months_on_book), 1, 0),
+        abv_avg_dep = ifelse(Dependent_count >= mean(Dependent_count), 1, 0),
+        bel_avg_dep = ifelse(Dependent_count < mean(Dependent_count), 1, 0),
+        abv_avg_relation_count = ifelse(Total_Relationship_Count >= mean(Total_Relationship_Count),
+                                        0 , 1),
+        bel_avg_relation_count = ifelse(Total_Relationship_Count < mean(Total_Relationship_Count),
+                                        0 , 1),
+        abv_avg_credit_lim = ifelse(Credit_Limit>= mean(Credit_Limit), 1, 0),
+        bel_avg_credit_lim = ifelse(Credit_Limit< mean(Credit_Limit), 1, 0),
+        more_than_10k_cl = ifelse(Credit_Limit >= 10000, 1, 0),
+        zero_month_inactive = ifelse(Months_Inactive_12_mon== 0, 1 ,0),
+        high_contact_count = ifelse(Contacts_Count_12_mon== 6, 1 ,0),
+        abv_avg_revolving_bal = ifelse(Total_Revolving_Bal >= mean(Total_Revolving_Bal), 1, 0),
+        bel_avg_revolving_bal = ifelse(Total_Revolving_Bal < mean(Total_Revolving_Bal), 1, 0),
+        abv_avg_avg_otb = ifelse(Avg_Open_To_Buy >= mean(Avg_Open_To_Buy), 1, 0),
+        bel_avg_avg_otb = ifelse(Avg_Open_To_Buy < mean(Avg_Open_To_Buy), 1, 0),
+        bel_avg_amt_q4_q1_change = ifelse (Total_Amt_Chng_Q4_Q1< mean(Total_Amt_Chng_Q4_Q1), 1, 0),
+        bel_avg_total_trans_amt = ifelse(Total_Trans_Amt < mean(Total_Trans_Amt), 1,0),
+        bel_avg_tot_trans_ct = ifelse(Total_Trans_Ct < mean(Total_Trans_Ct), 1, 0),
+        bel_avg_ct_change_q1_q4 = ifelse(Total_Ct_Chng_Q4_Q1 < mean(Total_Ct_Chng_Q4_Q1), 1, 0),
+        bel_avg_avg_util_ratio = ifelse(Avg_Utilization_Ratio < mean(Avg_Utilization_Ratio),1,0),
+        abv_avg_avg_util_ratio = ifelse(Avg_Utilization_Ratio >= mean(Avg_Utilization_Ratio),1,0),
+        abv_avg_age = ifelse(Customer_Age> mean(Customer_Age),1,0),
+        churn_binary = ifelse(Churn == "yes", 1, 0),
+        Churn_factor = as.factor(Churn))
+
+bankfeatures<- bank_features%>% select(male, # 0
+          female, #0 
+          single, #0 
+        married, #0
+          no_edu, #0
+          high_school_edu, #0 
+          graduate_edu, #0
+          unknown_edu, #0
+         college_edu, #0
+          doctor_edu, #0
+          less_40k, #0
+          between_80_120k,#0
+          between_60_80k, #0
+          more_than_120k, #0
+          unknownk, #0
+          blue_card, #0
+          silver_card, #0
+          gold_card, #0
+         plat_card, #0
+         abv_mob, #0
+         below_avg_mob,#0
+         abv_avg_dep, #0
+         bel_avg_dep, #0
+         abv_avg_relation_count,#0
+         bel_avg_relation_count, #0
+         abv_avg_credit_lim, #0
+         bel_avg_credit_lim, #0
+         more_than_10k_cl, #0
+         zero_month_inactive, # 0.008050623	
+         high_contact_count, # 0.06139779	, 0.05334717 increase
+         abv_avg_revolving_bal, # 0.06092747, 0.00047032 decrease
+         bel_avg_revolving_bal, #0.0620925	, 0.00069471 increase
+         abv_avg_avg_otb, #0.0627385,  0.000646 increase
+         bel_avg_avg_otb, #0.06066439	, 0.00207411 decrease
+         bel_avg_amt_q4_q1_change,#jump, 0.068158	
+         bel_avg_total_trans_amt, #jump, 0.1982275	
+         bel_avg_tot_trans_ct, #jump, 0.4724855	
+         bel_avg_ct_change_q1_q4, #0.03 improve, 0.5097557	
+         bel_avg_avg_util_ratio, #0.02, 0.5260681	
+         abv_avg_avg_util_ratio, #no change, 0.5277383	
+         abv_avg_age, #tiny improve, 0.5282459
+        Churn_factor)
+
+
+five_feature<- bank_features%>%
+  select(zero_month_inactive, # 0.008050623	
+         high_contact_count, # 0.06139779	, 0.05334717 increase
+         abv_avg_revolving_bal, # 0.06092747, 0.00047032 decrease
+         bel_avg_revolving_bal, #0.0620925	, 0.00069471 increase
+         abv_avg_avg_otb, #0.0627385,  0.000646 increase
+         bel_avg_avg_otb, #0.06066439	, 0.00207411 decrease
+         bel_avg_amt_q4_q1_change,#jump, 0.068158	
+         bel_avg_total_trans_amt, #jump, 0.1982275	
+         bel_avg_tot_trans_ct, #jump, 0.4724855	
+         bel_avg_ct_change_q1_q4, #0.03 improve, 0.5097557	
+         bel_avg_avg_util_ratio, #0.02, 0.5260681	
+         abv_avg_avg_util_ratio, #no change, 0.5277383	
+         abv_avg_age, #tiny improve, 0.5282459,
+         Churn_factor)
+
+five_feature<-bank_features%>%
+  select(high_contact_count, bel_avg_revolving_bal, bel_avg_total_trans_amt, bel_avg_tot_trans_ct, bel_avg_ct_change_q1_q4, Churn)
+
+
+```
+
+
+
+
+```{}
+library(caret)
+
+# List all the engineered features excluding 'Churn'
+features <- names(five_feature)[-which(names(five_feature) == "Churn_factor")]
+
+# Generate all combinations of 5 features from the available list
+feature_combinations <- combn(features, 5, simplify = FALSE)
+
+# Function to train the model and extract Kappa value
+train_and_record_kappa <- function(features_subset) {
+  # Select the 5 features and Churn
+  model_data <- five_feature %>%
+    select(Churn_factor, all_of(features_subset))
+  
+  # Train the model
+  tryCatch({
+    model <- train(Churn_factor ~ ., 
+                   data = model_data, 
+                   method = "glm", 
+                   family = "binomial", 
+                   trControl = trainControl(method = "cv", number = 5))
+    
+    # Return Kappa and the selected features
+    kappa_value <- model$results$Kappa
+    return(list(Kappa = kappa_value, Features = features_subset))
+  }, error = function(e) {
+    # If there is an error, return NA for Kappa
+    return(list(Kappa = NA, Features = features_subset))
+  })
+}
+
+# Initialize a list to store the results
+results <- list()
+
+# For reproducibility
+set.seed(123)  # Set seed for reproducibility
+subset_combinations <- sample(feature_combinations, 1000)  # Take 1000 random combinations
+
+# Loop through each combination
+for (combination in subset_combinations) {
+  result <- train_and_record_kappa(combination)
+  results[[paste(combination, collapse = "_")]] <- result
+}
+
+# Convert results into a data frame for easier inspection
+results_df <- do.call(rbind, lapply(results, function(x) data.frame(Kappa = x$Kappa, Features = paste(x$Features, collapse = ", "))))
+results_df_hand <- results_df[order(results_df$Kappa, decreasing = TRUE), ]
+
+# View the top results
+head(results_df_hand)
+
+```
+9:54 start time
+
+#male, female, bel_avg_revolving_bal, bel_avg_tot_trans_ct, bel_avg_ct_change_q1_q4, 0.504850061
+
+##Testing
+
+```{r}
+set.seed(718)
+train(Churn ~ .,
+      data = five_feature, 
+      trControl = trainControl(method = "cv", number = 5),
+      method = "glm",
+      family = "binomial",
+      maxit = 5)$results['Kappa']
+
+```
+
+
+```{r}
+train(Churn ~ .,
+      data = bank |> select(1,2,3,4,5,grep("Churn", colnames(bank))), 
+      trControl = trainControl(method = "cv", number = 5),
+      method = "glm",
+      family = "binomial",
+      maxit = 5)$results['Kappa']
+```
+##Writing to RDS for submission
+```{r}
+write_rds(bank, file="model_2.rds")
+```
