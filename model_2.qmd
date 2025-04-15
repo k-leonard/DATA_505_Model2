@@ -136,60 +136,6 @@ five_feature<-bank_features%>%
 
 
 
-```{}
-library(caret)
-
-# List all the engineered features excluding 'Churn'
-features <- names(five_feature)[-which(names(five_feature) == "Churn_factor")]
-
-# Generate all combinations of 5 features from the available list
-feature_combinations <- combn(features, 5, simplify = FALSE)
-
-# Function to train the model and extract Kappa value
-train_and_record_kappa <- function(features_subset) {
-  # Select the 5 features and Churn
-  model_data <- five_feature %>%
-    select(Churn_factor, all_of(features_subset))
-  
-  # Train the model
-  tryCatch({
-    model <- train(Churn_factor ~ ., 
-                   data = model_data, 
-                   method = "glm", 
-                   family = "binomial", 
-                   trControl = trainControl(method = "cv", number = 5))
-    
-    # Return Kappa and the selected features
-    kappa_value <- model$results$Kappa
-    return(list(Kappa = kappa_value, Features = features_subset))
-  }, error = function(e) {
-    # If there is an error, return NA for Kappa
-    return(list(Kappa = NA, Features = features_subset))
-  })
-}
-
-# Initialize a list to store the results
-results <- list()
-
-# For reproducibility
-set.seed(123)  # Set seed for reproducibility
-subset_combinations <- sample(feature_combinations, 1000)  # Take 1000 random combinations
-
-# Loop through each combination
-for (combination in subset_combinations) {
-  result <- train_and_record_kappa(combination)
-  results[[paste(combination, collapse = "_")]] <- result
-}
-
-# Convert results into a data frame for easier inspection
-results_df <- do.call(rbind, lapply(results, function(x) data.frame(Kappa = x$Kappa, Features = paste(x$Features, collapse = ", "))))
-results_df_hand <- results_df[order(results_df$Kappa, decreasing = TRUE), ]
-
-# View the top results
-head(results_df_hand)
-
-```
-9:54 start time
 
 #male, female, bel_avg_revolving_bal, bel_avg_tot_trans_ct, bel_avg_ct_change_q1_q4, 0.504850061
 
@@ -203,6 +149,8 @@ train(Churn ~ .,
       method = "glm",
       family = "binomial",
       maxit = 5)$results['Kappa']
+
+bank<-five_feature
 
 ```
 
